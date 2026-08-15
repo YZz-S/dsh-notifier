@@ -61,6 +61,21 @@ function buildWindowsScript(title, body) {
 export function apply(ctx) {
   const agents = ctx.get('agents')
 
+  // 会话标题：优先显示触发通知的会话标题，缺失时回退到品牌名。
+  function sessionTitleOf(agent) {
+    if (agent === undefined || agent === null) return ''
+    try {
+      const svc = ctx.get('sessionTitle')
+      if (svc === undefined || typeof svc.get !== 'function') return ''
+      const session = agent.session
+      if (session === undefined || session === null) return ''
+      const snap = svc.get(session)
+      return snap && typeof snap.title === 'string' ? snap.title.trim() : ''
+    } catch (error) {
+      return ''
+    }
+  }
+
   let notifierPromise = null
   function resolveNotifier() {
     if (notifierPromise === null) {
@@ -118,7 +133,7 @@ export function apply(ctx) {
       runningAgents.delete(agent)
       if (!wasRunning) return
       const isRoot = agents === undefined ? true : agents.roots().indexOf(agent) !== -1
-      if (isRoot) notify('DeepSeek Harness', '任务已完成')
+      if (isRoot) notify(sessionTitleOf(agent) || 'DeepSeek Harness', '任务已完成')
     }
   })
 
@@ -130,7 +145,7 @@ export function apply(ctx) {
       let body = '有一个操作需要你在页面中确认'
       if (toolName) body = '工具 ' + toolName + ' 需要你在页面中确认'
       if (reason) body = body + '：' + reason
-      notify('DeepSeek Harness · 需要确认', body)
+      notify(sessionTitleOf(req && req.agent) || 'DeepSeek Harness', body)
     } catch (error) {
       console.error('dsh-notifier approval listener error:', error)
     }

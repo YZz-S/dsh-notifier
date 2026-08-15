@@ -8,6 +8,7 @@ DeepSeek Harness（dsh）系统通知插件：当任务完成，或需要你在�
 - **需要确认 / 输入通知**：触发审批（`approval/request`，例如需要你确认执行某个工具）时，发送「需要确认」，并带上工具名与原因
 - **不干预审批流程**：审批通知走 waterfall 的 `next()` 透传，绝不抢答、不改变审批结果
 - **跨平台**：Windows（Toast + 气泡兜底）/ macOS（`osascript`）/ Linux（`notify-send`）
+- **会话标题显示**：通知标题自动取触发通知的会话标题（`sessionTitle` 服务），缺失时回退到「DeepSeek Harness」；正文显示状态（任务已完成 / 需要确认）
 
 ## 触发的事件
 
