@@ -1,0 +1,4 @@
+# dsh-notifier bundle patch: mounts the notifier row (host half).
+- insert:
+    - id: notifier
+      name: dsh-notifier

@@ -1,21 +1,36 @@
 {
   "name": "dsh-notifier",
-  "version": "0.1.0",
-  "private": true,
+  "version": "0.2.0",
   "description": "DeepSeek Harness (dsh) 系统通知插件：任务完成或需要人工确认/输入时，发送操作系统原生通知。",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE"
+  ],
   "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
   "keywords": [
     "deepseek-harness",
     "dsh",
+    "dsh-plugin",
     "cordis",
     "plugin",
     "notification",
     "notifier",
     "toast"
   ],
-  "files": [
-    "host.js",
-    "README.md",
-    "LICENSE"
-  ]
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
 }

@@ -20,10 +20,23 @@ DeepSeek Harness（dsh）系统通知插件：当任务完成，或需要你在�
 
 | 文件 | 说明 |
 | --- | --- |
-| `host.js` | Host 半部分：监听事件、派生系统命令发送通知 |
+| `index.js` | 可安装的 Host 半边（`dsh.bundle` 入口，ES module） |
+| `cordis.patch.yml` | bundle 补丁：插入 `notifier` 插件行 |
+| `host.js` | 动态用法（`cordis_define` 的 `code.host`） |
+| `package.json` | 声明 `dsh.bundle` 的可安装包元信息 |
 | `README.md` | 本说明 |
 | `LICENSE` | MIT 许可证 |
-| `package.json` | 包元信息（本项目不发布到 npm，`private: true`） |
+
+## 安装（dsh.bundle）
+
+本仓库同时是可安装的 dsh 插件包（`package.json` 声明 `dsh.bundle`）：
+
+```sh
+dsh plugin --profile web add github:YZz-S/dsh-notifier
+```
+
+安装后任务完成或需要人工确认/输入时自动发送系统通知（纯 Host 插件，无需刷新页面）。
+动态用法（`cordis_define` 加载 `host.js`）仍保留，两种方式二选一。
 
 ## 使用方法
 
@@ -37,9 +50,9 @@ DeepSeek Harness（dsh）系统通知插件：当任务完成，或需要你在�
 
 > 注意：动态插件的生命周期与当前 dsh 进程相同。重启 dsh 后需重新定义运行。
 
-### 方式二：做成正式插件
+### 方式二：安装为正式插件（推荐）
 
-把 `host.js` 的逻辑封装为 npm 包并挂载到 profile（参见 DeepSeek Harness 插件开发文档）。`host.js` 为可直接复用的函数体。
+见上文「## 安装（dsh.bundle）」：`dsh plugin --profile web add github:YZz-S/dsh-notifier`。
 
 ## 工作原理
 
