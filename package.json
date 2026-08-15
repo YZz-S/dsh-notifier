@@ -1,0 +1,21 @@
+{
+  "name": "dsh-notifier",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DeepSeek Harness (dsh) 系统通知插件：任务完成或需要人工确认/输入时，发送操作系统原生通知。",
+  "license": "MIT",
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "cordis",
+    "plugin",
+    "notification",
+    "notifier",
+    "toast"
+  ],
+  "files": [
+    "host.js",
+    "README.md",
+    "LICENSE"
+  ]
+}
