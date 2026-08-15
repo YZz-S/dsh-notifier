@@ -8,7 +8,8 @@ DeepSeek Harness（dsh）系统通知插件：当任务完成，或需要你在�
 - **需要确认 / 输入通知**：触发审批（`approval/request`，例如需要你确认执行某个工具）时，发送「需要确认」，并带上工具名与原因
 - **不干预审批流程**：审批通知走 waterfall 的 `next()` 透传，绝不抢答、不改变审批结果
 - **跨平台**：Windows（Toast + 气泡兜底）/ macOS（`osascript`）/ Linux（`notify-send`）
-- **会话标题显示**：通知标题自动取触发通知的会话标题（`sessionTitle` 服务），缺失时回退到「DeepSeek Harness」；正文显示状态（任务已完成 / 需要确认）
+- **会话标题显示**：标题固定「DeepSeek Harness」，正文显示「会话标题」+ 状态（任务已完成 / 需要确认）
+- **DeepSeek Harness 品牌**：Windows 通知注册自定义 AppUserModelID，来源应用名与图标显示为 DeepSeek Harness
 
 ## 触发的事件
 
@@ -59,7 +60,7 @@ dsh plugin --profile web add github:YZz-S/dsh-notifier
 
 **通知命令（按顺序降级探测，取第一个可用）**：
 
-1. `powershell`（Windows）→ WinRT Toast，使用系统已注册的 PowerShell AppID（因此**无需写注册表**）；Toast 抛出异常时自动降级为气泡通知
+1. `powershell`（Windows）→ WinRT Toast，注册自定义 AppUserModelID（`DeepSeekHarness.Notify`，来源名 + `cdn.deepseek.com/logo.png` 图标）；Toast 抛出异常时自动降级为气泡通知
 2. `osascript`（macOS）→ `display notification … with title …`
 3. `notify-send`（Linux）
 
@@ -69,15 +70,15 @@ dsh plugin --profile web add github:YZz-S/dsh-notifier
 
 ## 隐私说明
 
-- **不发起任何网络请求**
-- **不采集、不上传任何数据**
-- **不写文件、不写注册表**（Windows Toast 使用系统已注册的 PowerShell AppID）
-- 仅在本地派生通知命令，副作用全部挂在插件 Fiber 上，停止即清理
+- 仅在 HKCU 注册 AppUserModelID（来源名 + 图标），无文件写入、无遥测、无持久化存储
+- 图标取自公开 CDN（`cdn.deepseek.com/logo.png`），仅在显示通知时由 Windows 拉取
+- 不采集、不上传任何本地数据
+- 副作用全部挂在插件 Fiber 上，停止即清理
 
 ## 已知限制
 
 - `subprocess` 服务不可用时插件静默停用
-- Windows Toast 以「Windows PowerShell」作为来源应用名显示（这是不写注册表的代价）
+- Windows 通知图标取自 CDN，离线时图标不显示（通知本身仍会弹出）
 - `agent/status` → `idle` 在每次顶层回合结束时触发，属于「回合/任务完成」语义
 - 动态插件为进程级生命周期，重启后需重新运行
 
@@ -85,7 +86,7 @@ dsh plugin --profile web add github:YZz-S/dsh-notifier
 
 - [x] 无硬编码密钥 / Token / 密码（已扫描 `api[_-]?key`、`secret`、`token`、`password`、私钥头等模式）
 - [x] 无个人信息（用户名、机器路径、内部 IP、邮箱）
-- [x] 无网络端点（插件不发起任何网络请求）
+- [x] 网络端点仅公开 CDN（`cdn.deepseek.com/logo.png`，仅供 Windows 拉取通知图标），已在 README 披露
 - [x] MIT 许可证齐全，README 完整
 - [x] 无遥测 / 无第三方数据收集
 - [x] 代码仅使用 dsh 动态插件公开接口（Services / ctx.on / subprocess），副作用全部挂在插件 Fiber 上，停止即清理

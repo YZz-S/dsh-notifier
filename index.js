@@ -10,8 +10,9 @@
 export const name = 'notifier'
 export const inject = ['subprocess']
 
-// PowerShell 已注册的 AppID（Windows PowerShell v1.0），据此发 Toast 无需注册表写入。
-const powershellAppId = '{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\\WindowsPowerShell\\v1.0\\powershell.exe'
+// 自定义 AppUserModelID：让 Windows 通知的来源应用名 + 图标显示为 DeepSeek Harness。
+const notifierAppId = 'DeepSeekHarness.Notify'
+const notifierLogo = 'https://cdn.deepseek.com/logo.png'
 
 function psQuote(value) {
   return "'" + String(value).replace(/'/g, "''") + "'"
@@ -25,14 +26,18 @@ function buildWindowsScript(title, body) {
   const t = psQuote(title)
   const b = psQuote(body)
   const toastStatements = [
+    "$reg='HKCU:\\Software\\Classes\\AppUserModelId\\" + notifierAppId + "'",
+    'New-Item -Path $reg -Force|Out-Null',
+    "New-ItemProperty -Path $reg -Name DisplayName -Value 'DeepSeek Harness' -Force|Out-Null",
+    "New-ItemProperty -Path $reg -Name IconUri -Value '" + notifierLogo + "' -Force|Out-Null",
     '[Windows.UI.Notifications.ToastNotificationManager,Windows.UI.Notifications,ContentType=WindowsRuntime]|Out-Null',
     '[Windows.Data.Xml.Dom.XmlDocument,Windows.Data.Xml.Dom.XmlDocument,ContentType=WindowsRuntime]|Out-Null',
     '$et=[System.Security.SecurityElement]::Escape($t)',
     '$eb=[System.Security.SecurityElement]::Escape($b)',
     '$x=New-Object Windows.Data.Xml.Dom.XmlDocument',
-    "$x.LoadXml('<toast><visual><binding template=\"ToastGeneric\"><text>'+$et+'</text><text>'+$eb+'</text></binding></visual></toast>')",
+    "$x.LoadXml('<toast><visual><binding template=\"ToastGeneric\"><image placement=\"appLogoOverride\" src=\"" + notifierLogo + "\" hint-crop=\"circle\"/><text>'+$et+'</text><text>'+$eb+'</text></binding></visual></toast>')",
     '$n=[Windows.UI.Notifications.ToastNotification]::new($x)',
-    "[Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('" + powershellAppId + "').Show($n)",
+    "[Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('" + notifierAppId + "').Show($n)",
     '$showed=$true',
   ]
   const balloonStatements = [
@@ -74,6 +79,12 @@ export function apply(ctx) {
     } catch (error) {
       return ''
     }
+  }
+
+  // 会话标题标签：放进正文，形如「会话标题」；无标题时为空串。
+  function sessionLabel(agent) {
+    const title = sessionTitleOf(agent)
+    return title ? '「' + title + '」' : ''
   }
 
   let notifierPromise = null
@@ -133,7 +144,7 @@ export function apply(ctx) {
       runningAgents.delete(agent)
       if (!wasRunning) return
       const isRoot = agents === undefined ? true : agents.roots().indexOf(agent) !== -1
-      if (isRoot) notify(sessionTitleOf(agent) || 'DeepSeek Harness', '任务已完成')
+      if (isRoot) notify('DeepSeek Harness', sessionLabel(agent) + '任务已完成')
     }
   })
 
@@ -145,7 +156,7 @@ export function apply(ctx) {
       let body = '有一个操作需要你在页面中确认'
       if (toolName) body = '工具 ' + toolName + ' 需要你在页面中确认'
       if (reason) body = body + '：' + reason
-      notify(sessionTitleOf(req && req.agent) || 'DeepSeek Harness', body)
+      notify('DeepSeek Harness', sessionLabel(req && req.agent) + body)
     } catch (error) {
       console.error('dsh-notifier approval listener error:', error)
     }

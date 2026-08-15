@@ -5,11 +5,11 @@
 //   1. 监听 agent/status：顶层会话从 running 回到 idle 时，发送「任务已完成」系统通知
 //   2. 监听 approval/request：需要用户在页面中确认/输入时，发送「需要确认」系统通知（不干预审批流程）
 //   3. 通过 subprocess 派生系统命令发送通知：
-//      - Windows：PowerShell WinRT Toast（使用已注册的 PowerShell AppID，无需写注册表），失败自动降级为气泡通知
+//      - Windows：PowerShell WinRT Toast（注册自定义 AppUserModelID，来源名/图标显示 DeepSeek Harness），失败自动降级为气泡通知
 //      - macOS：osascript display notification
 //      - Linux：notify-send
 // 依赖：subprocess 为可选能力（ctx.get），缺失时本插件静默停用；agents 用于过滤顶层会话，缺失时不过滤。
-// 隐私：仅本地派生通知命令，不发起任何网络请求，不采集/上传数据，不写文件（Windows Toast 亦不写注册表）。
+// 隐私：仅本地派生通知命令；Windows 仅在 HKCU 注册 AppUserModelID（名称/图标），图标取自公开 CDN（cdn.deepseek.com/logo.png），不上传任何本地数据。
 // ---------------------------------------------------------------------------
 return {
   apply(ctx) {
@@ -32,8 +32,15 @@ return {
       }
     }
 
-    // PowerShell 已注册的 AppID（Windows PowerShell v1.0），据此发 Toast 无需注册表写入。
-    const powershellAppId = '{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\\WindowsPowerShell\\v1.0\\powershell.exe'
+    // 会话标题标签：放进正文，形如「会话标题」；无标题时为空串。
+    function sessionLabel(agent) {
+      const title = sessionTitleOf(agent)
+      return title ? '「' + title + '」' : ''
+    }
+
+    // 自定义 AppUserModelID：让 Windows 通知的来源应用名 + 图标显示为 DeepSeek Harness。
+    const notifierAppId = 'DeepSeekHarness.Notify'
+    const notifierLogo = 'https://cdn.deepseek.com/logo.png'
 
     // ---- 平台通知命令解析（惰性 + 缓存）----
     let notifierPromise = null
@@ -64,14 +71,18 @@ return {
       const t = psQuote(title)
       const b = psQuote(body)
       const toastStatements = [
+        "$reg='HKCU:\\Software\\Classes\\AppUserModelId\\" + notifierAppId + "'",
+        'New-Item -Path $reg -Force|Out-Null',
+        "New-ItemProperty -Path $reg -Name DisplayName -Value 'DeepSeek Harness' -Force|Out-Null",
+        "New-ItemProperty -Path $reg -Name IconUri -Value '" + notifierLogo + "' -Force|Out-Null",
         '[Windows.UI.Notifications.ToastNotificationManager,Windows.UI.Notifications,ContentType=WindowsRuntime]|Out-Null',
         '[Windows.Data.Xml.Dom.XmlDocument,Windows.Data.Xml.Dom.XmlDocument,ContentType=WindowsRuntime]|Out-Null',
         '$et=[System.Security.SecurityElement]::Escape($t)',
         '$eb=[System.Security.SecurityElement]::Escape($b)',
         '$x=New-Object Windows.Data.Xml.Dom.XmlDocument',
-        "$x.LoadXml('<toast><visual><binding template=\"ToastGeneric\"><text>'+$et+'</text><text>'+$eb+'</text></binding></visual></toast>')",
+        "$x.LoadXml('<toast><visual><binding template=\"ToastGeneric\"><image placement=\"appLogoOverride\" src=\"" + notifierLogo + "\" hint-crop=\"circle\"/><text>'+$et+'</text><text>'+$eb+'</text></binding></visual></toast>')",
         '$n=[Windows.UI.Notifications.ToastNotification]::new($x)',
-        "[Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('" + powershellAppId + "').Show($n)",
+        "[Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('" + notifierAppId + "').Show($n)",
         '$showed=$true',
       ]
       const balloonStatements = [
@@ -138,7 +149,7 @@ return {
         runningAgents.delete(agent)
         if (!wasRunning) return
         const isRoot = agents === undefined ? true : agents.roots().indexOf(agent) !== -1
-        if (isRoot) notify(sessionTitleOf(agent) || 'DeepSeek Harness', '任务已完成')
+        if (isRoot) notify('DeepSeek Harness', sessionLabel(agent) + '任务已完成')
       }
     })
 
@@ -150,7 +161,7 @@ return {
         let body = '有一个操作需要你在页面中确认'
         if (toolName) body = '工具 ' + toolName + ' 需要你在页面中确认'
         if (reason) body = body + '：' + reason
-        notify(sessionTitleOf(req && req.agent) || 'DeepSeek Harness', body)
+        notify('DeepSeek Harness', sessionLabel(req && req.agent) + body)
       } catch (error) {
         console.error('dsh-notifier approval listener error:', error)
       }
