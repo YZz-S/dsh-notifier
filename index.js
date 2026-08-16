@@ -12,7 +12,7 @@ export const inject = ['subprocess']
 
 // 自定义 AppUserModelID：让 Windows 通知的来源应用名 + 图标显示为 DeepSeek Harness。
 const notifierAppId = 'DeepSeekHarness.Notify'
-const notifierLogo = 'https://cdn.deepseek.com/logo.png'
+const notifierLogo = 'https://avatars.githubusercontent.com/u/148330874?v=4&s=200'
 
 function psQuote(value) {
   return "'" + String(value).replace(/'/g, "''") + "'"
@@ -26,16 +26,22 @@ function buildWindowsScript(title, body) {
   const t = psQuote(title)
   const b = psQuote(body)
   const toastStatements = [
+    "$logo=Join-Path $env:TEMP 'dsh-notifier\\logo.png'",
+    "New-Item -ItemType Directory -Force -Path (Split-Path $logo)|Out-Null",
+    "$logotmp=Join-Path $env:TEMP 'dsh-notifier\\logo.tmp'",
+    "curl.exe -sL -o $logotmp --max-time 8 '" + notifierLogo + "' 2>$null",
+    "if((Test-Path $logotmp)-and((Get-Item $logotmp).Length -gt 0)){Move-Item $logotmp $logo -Force}else{Remove-Item $logotmp -Force -ErrorAction SilentlyContinue}",
+    "$logoUri='file:///'+$logo.Replace('\\','/').Replace(' ','%20')",
     "$reg='HKCU:\\Software\\Classes\\AppUserModelId\\" + notifierAppId + "'",
     'New-Item -Path $reg -Force|Out-Null',
     "New-ItemProperty -Path $reg -Name DisplayName -Value 'DeepSeek Harness' -Force|Out-Null",
-    "New-ItemProperty -Path $reg -Name IconUri -Value '" + notifierLogo + "' -Force|Out-Null",
+    'New-ItemProperty -Path $reg -Name IconUri -Value $logoUri -Force|Out-Null',
     '[Windows.UI.Notifications.ToastNotificationManager,Windows.UI.Notifications,ContentType=WindowsRuntime]|Out-Null',
     '[Windows.Data.Xml.Dom.XmlDocument,Windows.Data.Xml.Dom.XmlDocument,ContentType=WindowsRuntime]|Out-Null',
     '$et=[System.Security.SecurityElement]::Escape($t)',
     '$eb=[System.Security.SecurityElement]::Escape($b)',
     '$x=New-Object Windows.Data.Xml.Dom.XmlDocument',
-    "$x.LoadXml('<toast><visual><binding template=\"ToastGeneric\"><image placement=\"appLogoOverride\" src=\"" + notifierLogo + "\" hint-crop=\"circle\"/><text>'+$et+'</text><text>'+$eb+'</text></binding></visual></toast>')",
+    "$x.LoadXml('<toast><visual><binding template=\"ToastGeneric\"><image placement=\"appLogoOverride\" src=\"'+$logoUri+'\" hint-crop=\"circle\"/><text>'+$et+'</text><text>'+$eb+'</text></binding></visual></toast>')",
     '$n=[Windows.UI.Notifications.ToastNotification]::new($x)',
     "[Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('" + notifierAppId + "').Show($n)",
     '$showed=$true',

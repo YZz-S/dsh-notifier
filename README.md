@@ -67,7 +67,7 @@ See "Installation (dsh.bundle)" above: `dsh plugin --profile web add github:YZz-
 
 **Notification command (probe-degraded in order, first available wins)**:
 
-1. `powershell` (Windows) → WinRT Toast with a custom AppUserModelID (`DeepSeekHarness.Notify`, source name + `cdn.deepseek.com/logo.png` icon); if Toast throws, it degrades to a balloon notification
+1. `powershell` (Windows) → WinRT Toast with a custom AppUserModelID (`DeepSeekHarness.Notify`, source name + `avatars.githubusercontent.com/u/148330874?v=4&s=200` icon); if Toast throws, it degrades to a balloon notification
 2. `osascript` (macOS) → `display notification … with title …`
 3. `notify-send` (Linux)
 
@@ -78,7 +78,7 @@ Title / body are embedded into the `-Command` script after PowerShell single-quo
 ### Privacy
 
 - Only registers an AppUserModelID in HKCU (source name + icon); no file writes, no telemetry, no persistent storage
-- The icon is fetched from a public CDN (`cdn.deepseek.com/logo.png`) by Windows only when a notification is displayed
+- The icon is fetched from a public CDN (`avatars.githubusercontent.com/u/148330874?v=4&s=200`) by Windows only when a notification is displayed
 - No local data is collected or uploaded
 - All side effects hang on the plugin Fiber and are cleaned up on stop
 
@@ -93,7 +93,7 @@ Title / body are embedded into the `-Command` script after PowerShell single-quo
 
 - [x] No hard-coded keys / tokens / passwords (patterns like `api[_-]?key`, `secret`, `token`, `password`, private-key headers scanned)
 - [x] No personal information (usernames, machine paths, internal IPs, emails)
-- [x] The only network endpoint is the public CDN (`cdn.deepseek.com/logo.png`, fetched by Windows solely for the notification icon), disclosed in this README
+- [x] The only network endpoint is the public CDN (`avatars.githubusercontent.com/u/148330874?v=4&s=200`, fetched by Windows solely for the notification icon), disclosed in this README
 - [x] MIT license in place, README complete
 - [x] No telemetry / no third-party data collection
 - [x] Code uses only dsh dynamic plugin public interfaces (Services / ctx.on / subprocess); all side effects hang on the plugin Fiber and are cleaned up on stop
@@ -168,7 +168,7 @@ dsh plugin --profile web add github:YZz-S/dsh-notifier
 
 **通知命令（按顺序降级探测，取第一个可用）**：
 
-1. `powershell`（Windows）→ WinRT Toast，注册自定义 AppUserModelID（`DeepSeekHarness.Notify`，来源名 + `cdn.deepseek.com/logo.png` 图标）；Toast 抛出异常时自动降级为气泡通知
+1. `powershell`（Windows）→ WinRT Toast，注册自定义 AppUserModelID（`DeepSeekHarness.Notify`，来源名 + `avatars.githubusercontent.com/u/148330874?v=4&s=200` 图标）；Toast 抛出异常时自动降级为气泡通知
 2. `osascript`（macOS）→ `display notification … with title …`
 3. `notify-send`（Linux）
 
@@ -179,7 +179,7 @@ dsh plugin --profile web add github:YZz-S/dsh-notifier
 ### 隐私说明
 
 - 仅在 HKCU 注册 AppUserModelID（来源名 + 图标），无文件写入、无遥测、无持久化存储
-- 图标取自公开 CDN（`cdn.deepseek.com/logo.png`），仅在显示通知时由 Windows 拉取
+- 图标取自公开 CDN（`avatars.githubusercontent.com/u/148330874?v=4&s=200`），仅在显示通知时由 Windows 拉取
 - 不采集、不上传任何本地数据
 - 副作用全部挂在插件 Fiber 上，停止即清理
 
@@ -194,7 +194,7 @@ dsh plugin --profile web add github:YZz-S/dsh-notifier
 
 - [x] 无硬编码密钥 / Token / 密码（已扫描 `api[_-]?key`、`secret`、`token`、`password`、私钥头等模式）
 - [x] 无个人信息（用户名、机器路径、内部 IP、邮箱）
-- [x] 网络端点仅公开 CDN（`cdn.deepseek.com/logo.png`，仅供 Windows 拉取通知图标），已在 README 披露
+- [x] 网络端点仅公开 CDN（`avatars.githubusercontent.com/u/148330874?v=4&s=200`，仅供 Windows 拉取通知图标），已在 README 披露
 - [x] MIT 许可证齐全，README 完整
 - [x] 无遥测 / 无第三方数据收集
 - [x] 代码仅使用 dsh 动态插件公开接口（Services / ctx.on / subprocess），副作用全部挂在插件 Fiber 上，停止即清理

@@ -5,11 +5,11 @@
 //   1. 监听 agent/status：顶层会话从 running 回到 idle 时，发送「任务已完成」系统通知
 //   2. 监听 approval/request：需要用户在页面中确认/输入时，发送「需要确认」系统通知（不干预审批流程）
 //   3. 通过 subprocess 派生系统命令发送通知：
-//      - Windows：PowerShell WinRT Toast（注册自定义 AppUserModelID，来源名/图标显示 DeepSeek Harness），失败自动降级为气泡通知
+//      - Windows：PowerShell WinRT Toast（注册自定义 AppUserModelID；logo 下载到本地后以 file:/// 引用），失败自动降级为气泡通知
 //      - macOS：osascript display notification
 //      - Linux：notify-send
 // 依赖：subprocess 为可选能力（ctx.get），缺失时本插件静默停用；agents 用于过滤顶层会话，缺失时不过滤。
-// 隐私：仅本地派生通知命令；Windows 仅在 HKCU 注册 AppUserModelID（名称/图标），图标取自公开 CDN（cdn.deepseek.com/logo.png），不上传任何本地数据。
+// 隐私：仅本地派生通知命令；Windows 仅在 HKCU 注册 AppUserModelID（名称/图标），logo 从公开 CDN 下载到 %TEMP% 后本地引用，不上传任何本地数据。
 // ---------------------------------------------------------------------------
 return {
   apply(ctx) {
@@ -40,7 +40,7 @@ return {
 
     // 自定义 AppUserModelID：让 Windows 通知的来源应用名 + 图标显示为 DeepSeek Harness。
     const notifierAppId = 'DeepSeekHarness.Notify'
-    const notifierLogo = 'https://cdn.deepseek.com/logo.png'
+    const notifierLogo = 'https://avatars.githubusercontent.com/u/148330874?v=4&s=200'
 
     // ---- 平台通知命令解析（惰性 + 缓存）----
     let notifierPromise = null
@@ -71,16 +71,22 @@ return {
       const t = psQuote(title)
       const b = psQuote(body)
       const toastStatements = [
+        "$logo=Join-Path $env:TEMP 'dsh-notifier\\logo.png'",
+        "New-Item -ItemType Directory -Force -Path (Split-Path $logo)|Out-Null",
+        "$logotmp=Join-Path $env:TEMP 'dsh-notifier\\logo.tmp'",
+        "curl.exe -sL -o $logotmp --max-time 8 '" + notifierLogo + "' 2>$null",
+        "if((Test-Path $logotmp)-and((Get-Item $logotmp).Length -gt 0)){Move-Item $logotmp $logo -Force}else{Remove-Item $logotmp -Force -ErrorAction SilentlyContinue}",
+        "$logoUri='file:///'+$logo.Replace('\\','/').Replace(' ','%20')",
         "$reg='HKCU:\\Software\\Classes\\AppUserModelId\\" + notifierAppId + "'",
         'New-Item -Path $reg -Force|Out-Null',
         "New-ItemProperty -Path $reg -Name DisplayName -Value 'DeepSeek Harness' -Force|Out-Null",
-        "New-ItemProperty -Path $reg -Name IconUri -Value '" + notifierLogo + "' -Force|Out-Null",
+        'New-ItemProperty -Path $reg -Name IconUri -Value $logoUri -Force|Out-Null',
         '[Windows.UI.Notifications.ToastNotificationManager,Windows.UI.Notifications,ContentType=WindowsRuntime]|Out-Null',
         '[Windows.Data.Xml.Dom.XmlDocument,Windows.Data.Xml.Dom.XmlDocument,ContentType=WindowsRuntime]|Out-Null',
         '$et=[System.Security.SecurityElement]::Escape($t)',
         '$eb=[System.Security.SecurityElement]::Escape($b)',
         '$x=New-Object Windows.Data.Xml.Dom.XmlDocument',
-        "$x.LoadXml('<toast><visual><binding template=\"ToastGeneric\"><image placement=\"appLogoOverride\" src=\"" + notifierLogo + "\" hint-crop=\"circle\"/><text>'+$et+'</text><text>'+$eb+'</text></binding></visual></toast>')",
+        "$x.LoadXml('<toast><visual><binding template=\"ToastGeneric\"><image placement=\"appLogoOverride\" src=\"'+$logoUri+'\" hint-crop=\"circle\"/><text>'+$et+'</text><text>'+$eb+'</text></binding></visual></toast>')",
         '$n=[Windows.UI.Notifications.ToastNotification]::new($x)',
         "[Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('" + notifierAppId + "').Show($n)",
         '$showed=$true',
